@@ -1,0 +1,12 @@
+[package]
+name = "default-editor"
+version = "0.1.0"
+authors = ["Linus Unnebäck <linus@folkdatorn.se>"]
+
+description = "Get the default editor for the current environment"
+homepage = "https://github.com/LinusU/rust-default-editor"
+documentation = "https://docs.rs/default-editor"
+repository = "https://github.com/LinusU/rust-default-editor"
+keywords = ["default", "editor", "environment", "vi"]
+readme = "readme.md"
+license = "MIT"
