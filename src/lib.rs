@@ -1,32 +1,64 @@
 use std::env;
 use std::env::VarError;
 
-/// Get the default editor for the current environment
-pub fn get() -> Result<String, VarError> {
+const FALLBACK_EDITOR: &str = "vi";
+
+fn parse_command_program (command: &str) -> String {
+    let mut args = command.split_whitespace();
+    args.next().unwrap_or(FALLBACK_EDITOR).to_string()
+}
+
+fn parse_command_program_with_args(command: &str) -> (String, Vec<String>) {
+    let mut args = command.split_whitespace();
+    let program = args.next().unwrap_or(FALLBACK_EDITOR).to_string();
+
+    
+    let args = args.map(|arg| arg.to_string()).collect();
+    (program, args)
+}
+
+fn get_editor_command () -> Result<String, VarError> {
     match env::var("VISUAL") {
         Ok(result) => return Ok(result),
-        Err(VarError::NotPresent) => {},
+        Err(VarError::NotPresent) => {}
         Err(error) => return Err(error),
     }
 
     match env::var("EDITOR") {
         Ok(result) => return Ok(result),
-        Err(VarError::NotPresent) => {},
+        Err(VarError::NotPresent) => {}
         Err(error) => return Err(error),
     }
 
-    Ok("vi".to_string())
+    Ok(FALLBACK_EDITOR.to_string())
+}
+
+/// Get the default editor for the current environment
+pub fn get() -> Result<String, VarError> {
+    match get_editor_command() {
+        Ok(command) => Ok(parse_command_program(&command)),
+        Err(error) => Err(error),
+    }
+}
+
+pub fn get_with_args() -> Result<(String, Vec<String>), VarError> {
+    match get_editor_command() {
+        Ok(command) => Ok(parse_command_program_with_args(&command)),
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::env;
 
+    use crate::FALLBACK_EDITOR;
+
     fn it_falls_back_to_vi() {
         env::remove_var("VISUAL");
         env::remove_var("EDITOR");
 
-        assert_eq!(super::get(), Ok("vi".to_string()));
+        assert_eq!(super::get(), Ok(FALLBACK_EDITOR.to_string()));
     }
 
     fn it_returns_visual() {
@@ -50,6 +82,16 @@ mod tests {
         assert_eq!(super::get(), Ok("test3".to_string()));
     }
 
+    fn it_returns_editor_with_args() {
+        env::remove_var("VISUAL");
+        env::set_var("EDITOR", "test5 -a -b -c");
+
+        assert_eq!(
+            super::get_with_args(),
+            Ok(("test5".to_string(), vec!["-a".to_string(), "-b".to_string(), "-c".to_string()]))
+        );
+    }
+
     #[test]
     fn all_tests() {
         // Wrap all tests in another function since they cannot be run in parallel
@@ -58,5 +100,6 @@ mod tests {
         it_returns_visual();
         it_returns_editor();
         it_returns_visual_before_editor();
+        it_returns_editor_with_args();
     }
 }
